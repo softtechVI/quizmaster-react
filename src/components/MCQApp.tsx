@@ -122,16 +122,25 @@ export function MCQApp() {
     setHistory(loadHistory());
 
     (async () => {
-      const { count } = await supabase
-        .from("questions")
-        .select("*", { count: "exact", head: true });
-      setAvailable(count ?? 0);
-      const { data } = await supabase
-        .from("stats")
-        .select("total_correct,total_wrong")
-        .eq("id", "global")
-        .maybeSingle();
-      if (data) setGlobalStats(data);
+      try {
+        const { count, error: cErr } = await supabase
+          .from("questions")
+          .select("id", { count: "planned", head: true });
+        if (cErr) throw cErr;
+        setAvailable(count ?? 0);
+      } catch {
+        setError("Couldn't reach the database. Check your connection and retry.");
+      }
+      try {
+        const { data } = await supabase
+          .from("stats")
+          .select("total_correct,total_wrong")
+          .eq("id", "global")
+          .maybeSingle();
+        if (data) setGlobalStats(data);
+      } catch {
+        /* stats are non-critical */
+      }
     })();
   }, []);
 
